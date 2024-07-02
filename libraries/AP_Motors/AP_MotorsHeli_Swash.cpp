@@ -88,13 +88,9 @@ const AP_Param::GroupInfo AP_MotorsHeli_Swash::var_info[] = {
 };
 
 AP_MotorsHeli_Swash::AP_MotorsHeli_Swash(uint8_t mot_0, uint8_t mot_1, uint8_t mot_2, uint8_t mot_3, uint8_t instance) :
-    _instance(instance)
+    _instance(instance),
+    _motor_num{mot_0, mot_1, mot_2, mot_3}
 {
-    _motor_num[0] = mot_0;
-    _motor_num[1] = mot_1;
-    _motor_num[2] = mot_2;
-    _motor_num[3] = mot_3;
-
     AP_Param::setup_object_defaults(this, var_info);
 }
 
@@ -215,15 +211,16 @@ void AP_MotorsHeli_Swash::add_servo_raw(uint8_t num, float roll, float pitch, fl
 // calculates servo output
 void AP_MotorsHeli_Swash::calculate(float roll, float pitch, float collective)
 {
-    // Collective control direction. Swash moves up for negative collective pitch, down for positive collective pitch
-    if (_collective_direction == COLLECTIVE_DIRECTION_REVERSED){
-        collective = 1 - collective;
-    }
 
-    // Store inputs for logging
+    // Store inputs for logging, store col before col reversal to ensure logging comes out with the correct sign (+/-)
     _roll_input = roll;
     _pitch_input = pitch;
     _collective_input_scaled = collective;
+
+    // Collective control direction. Swash moves up for negative collective pitch, down for positive collective pitch
+    if (_collective_direction == COLLECTIVE_DIRECTION_REVERSED) {
+        collective = 1 - collective;
+    }
 
     for (uint8_t i = 0; i < _max_num_servos; i++) {
         if (!_enabled[i]) {

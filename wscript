@@ -441,6 +441,11 @@ configuration in order to save typing.
                  type='int',
                  default=0,
                  help='zero time on boot in microseconds')
+
+    g.add_option('--enable-new-checking',
+        action='store_true',
+        default=False,
+        help='enables checking of new to ensure NEW_NOTHROW is used')
     
 def _collect_autoconfig_files(cfg):
     for m in sys.modules.values():
@@ -631,6 +636,7 @@ def configure(cfg):
     # add in generated flags
     cfg.env.CXXFLAGS += ['-include', 'ap_config.h']
 
+    cfg.remove_target_list()
     _collect_autoconfig_files(cfg)
 
 def collect_dirs_to_recurse(bld, globs, **kw):

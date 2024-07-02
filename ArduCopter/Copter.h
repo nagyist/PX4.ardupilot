@@ -71,6 +71,7 @@
 #include <AC_PrecLand/AC_PrecLand_config.h>
 #include <AP_OpticalFlow/AP_OpticalFlow.h>
 #include <AP_Winch/AP_Winch_config.h>
+#include <AP_SurfaceDistance/AP_SurfaceDistance.h>
 
 // Configuration
 #include "defines.h"
@@ -120,7 +121,7 @@
 #if AP_TERRAIN_AVAILABLE
  # include <AP_Terrain/AP_Terrain.h>
 #endif
-#if RANGEFINDER_ENABLED == ENABLED
+#if AP_RANGEFINDER_ENABLED
  # include <AP_RangeFinder/AP_RangeFinder.h>
 #endif
 
@@ -251,22 +252,13 @@ private:
     AP_Int8 *flight_modes;
     const uint8_t num_flight_modes = 6;
 
-    struct RangeFinderState {
-        bool enabled:1;
-        bool alt_healthy:1; // true if we can trust the altitude from the rangefinder
-        int16_t alt_cm;     // tilt compensated altitude (in cm) from rangefinder
-        float inertial_alt_cm; // inertial alt at time of last rangefinder sample
-        uint32_t last_healthy_ms;
-        LowPassFilterFloat alt_cm_filt; // altitude filter
-        int16_t alt_cm_glitch_protected;    // last glitch protected altitude
-        int8_t glitch_count;    // non-zero number indicates rangefinder is glitching
-        uint32_t glitch_cleared_ms; // system time glitch cleared
-        float terrain_offset_cm;    // filtered terrain offset (e.g. terrain's height above EKF origin)
-    } rangefinder_state, rangefinder_up_state;
+    AP_SurfaceDistance rangefinder_state {ROTATION_PITCH_270, inertial_nav, 0U};
+    AP_SurfaceDistance rangefinder_up_state {ROTATION_PITCH_90, inertial_nav, 1U};
 
-    // return rangefinder height interpolated using inertial altitude
+    // helper function to get inertially interpolated rangefinder height.
     bool get_rangefinder_height_interpolated_cm(int32_t& ret) const;
 
+#if AP_RANGEFINDER_ENABLED
     class SurfaceTracking {
     public:
 
@@ -301,6 +293,7 @@ private:
         bool valid_for_logging;     // true if we have a desired target altitude
         bool reset_target;          // true if target should be reset because of change in surface being tracked
     } surface_tracking;
+#endif
 
 #if AP_RPM_ENABLED
     AP_RPM rpm_sensor;
@@ -631,11 +624,16 @@ private:
     };
 
 
-    enum class FlightOptions {
+    enum class FlightOption : uint32_t {
         DISABLE_THRUST_LOSS_CHECK     = (1<<0),   // 1
         DISABLE_YAW_IMBALANCE_WARNING = (1<<1),   // 2
         RELEASE_GRIPPER_ON_THRUST_LOSS = (1<<2),  // 4
+        REQUIRE_POSITION_FOR_ARMING =   (1<<3),   // 8
     };
+    // returns true if option is enabled for this vehicle
+    bool option_is_enabled(FlightOption option) const {
+        return (g2.flight_options & uint32_t(option)) != 0;
+    }
 
     static constexpr int8_t _failsafe_priorities[] = {
                                                       (int8_t)FailsafeAction::TERMINATE,
@@ -675,6 +673,8 @@ private:
 #if AP_SCRIPTING_ENABLED
 #if MODE_GUIDED_ENABLED == ENABLED
     bool start_takeoff(float alt) override;
+    bool get_target_location(Location& target_loc) override;
+    bool update_target_location(const Location &old_loc, const Location &new_loc) override;
     bool set_target_pos_NED(const Vector3f& target_pos, bool use_yaw, float yaw_deg, bool use_yaw_rate, float yaw_rate_degs, bool yaw_relative, bool terrain_alt) override;
     bool set_target_posvel_NED(const Vector3f& target_pos, const Vector3f& target_vel) override;
     bool set_target_posvelaccel_NED(const Vector3f& target_pos, const Vector3f& target_vel, const Vector3f& target_accel, bool use_yaw, float yaw_deg, bool use_yaw_rate, float yaw_rate_degs, bool yaw_relative) override;
@@ -830,7 +830,8 @@ private:
     void set_land_complete(bool b);
     void set_land_complete_maybe(bool b);
     void update_throttle_mix();
-
+    bool get_force_flying() const;
+    
 #if AP_LANDINGGEAR_ENABLED
     // landing_gear.cpp
     void landinggear_update();

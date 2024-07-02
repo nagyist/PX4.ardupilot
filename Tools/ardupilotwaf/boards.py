@@ -4,6 +4,7 @@ from collections import OrderedDict
 import re
 import sys, os
 import fnmatch
+import platform
 
 import waflib
 from waflib import Utils
@@ -11,6 +12,10 @@ from waflib.Configure import conf
 import json
 _board_classes = {}
 _board = None
+
+# modify our search path:
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../libraries/AP_HAL_ChibiOS/hwdef/scripts'))
+import chibios_hwdef
 
 class BoardMeta(type):
     def __init__(cls, name, bases, dct):
@@ -40,6 +45,9 @@ class Board:
         cfg.env.ROMFS_FILES = []
         cfg.load('toolchain')
         cfg.load('cxx_checks')
+
+        # don't check elf symbols by default
+        cfg.env.CHECK_SYMBOLS = False
 
         env = waflib.ConfigSet.ConfigSet()
         def srcpath(path):
@@ -179,7 +187,7 @@ class Board:
         cfg.env.prepend_value('INCLUDES', [
             cfg.srcnode.find_dir('libraries/AP_Common/missing').abspath()
         ])
-        if os.path.exists(os.path.join(env.SRCROOT, '.vscode/c_cpp_properties.json')):
+        if os.path.exists(os.path.join(env.SRCROOT, '.vscode/c_cpp_properties.json')) and 'AP_NO_COMPILE_COMMANDS' not in os.environ:
             # change c_cpp_properties.json configure the VSCode Intellisense env
             c_cpp_properties = json.load(open(os.path.join(env.SRCROOT, '.vscode/c_cpp_properties.json')))
             for config in c_cpp_properties['configurations']:
@@ -272,7 +280,6 @@ class Board:
                     '-Werror=implicit-fallthrough',
                 ]
             env.CXXFLAGS += [
-                '-fcheck-new',
                 '-fsingle-precision-constant',
                 '-Wno-psabi',
             ]
@@ -542,6 +549,14 @@ class Board:
         if not embed.create_embedded_h(header, ctx.env.ROMFS_FILES, ctx.env.ROMFS_UNCOMPRESSED):
             ctx.fatal("Failed to created ap_romfs_embedded.h")
 
+        ctx.env.CXXFLAGS += ['-DHAL_HAVE_AP_ROMFS_EMBEDDED_H']
+
+        # Allow lua to load from ROMFS if any lua files are added
+        for file in ctx.env.ROMFS_FILES:
+            if file[0].startswith("scripts") and file[0].endswith(".lua"):
+                ctx.env.CXXFLAGS += ['-DHAL_HAVE_AP_ROMFS_EMBEDDED_LUA']
+                break
+
 Board = BoardMeta('Board', Board.__bases__, dict(Board.__dict__))
 
 def add_dynamic_boards_chibios():
@@ -595,21 +610,9 @@ def get_ap_periph_boards():
             continue
         hwdef = os.path.join(dirname, d, 'hwdef.dat')
         if os.path.exists(hwdef):
-            with open(hwdef, "r") as f:
-                content = f.read()
-                if 'AP_PERIPH' in content:
-                    list_ap.append(d)
-                    continue
-                # process any include lines:
-                m = re.match(r"include\s+([^\s]*)", content)
-                if m is None:
-                    continue
-                include_path = os.path.join(os.path.dirname(hwdef), m.group(1))
-                with open(include_path, "r") as g:
-                    content = g.read()
-                    if 'AP_PERIPH' in content:
-                        list_ap.append(d)
-                        continue
+            ch = chibios_hwdef.ChibiOSHWDef(hwdef=[hwdef], quiet=True)
+            if ch.is_periph_fw_unprocessed():
+                list_ap.append(d)
 
     list_ap = list(set(list_ap))
     return list_ap
@@ -749,6 +752,11 @@ class sitl(Board):
             'SITL',
         ]
 
+        # wrap malloc to ensure memory is zeroed
+        # don't do this on MacOS as ld doesn't support --wrap
+        if platform.system() != 'Darwin':
+            env.LINKFLAGS += ['-Wl,--wrap,malloc']
+        
         if cfg.options.enable_sfml:
             if not cfg.check_SFML(env):
                 cfg.fatal("Failed to find SFML libraries")
@@ -776,14 +784,6 @@ class sitl(Board):
             for f in os.listdir('ROMFS/scripts'):
                 if fnmatch.fnmatch(f, "*.lua"):
                     env.ROMFS_FILES += [('scripts/'+f,'ROMFS/scripts/'+f)]
-
-        if len(env.ROMFS_FILES) > 0:
-            # Allow lua to load from ROMFS if any lua files are added
-            for file in env.ROMFS_FILES:
-                if file[0].startswith("scripts") and file[0].endswith(".lua"):
-                    env.CXXFLAGS += ['-DHAL_HAVE_AP_ROMFS_EMBEDDED_LUA']
-                    break
-            env.CXXFLAGS += ['-DHAL_HAVE_AP_ROMFS_EMBEDDED_H']
 
         if cfg.options.sitl_rgbled:
             env.CXXFLAGS += ['-DWITH_SITL_RGBLED']
@@ -944,6 +944,19 @@ class sitl_periph_gps(sitl_periph):
             HAL_PERIPH_ENABLE_GPS = 1,
         )
 
+class sitl_periph_battmon(sitl_periph):
+    def configure_env(self, cfg, env):
+        cfg.env.AP_PERIPH = 1
+        super(sitl_periph_battmon, self).configure_env(cfg, env)
+        env.DEFINES.update(
+            HAL_BUILD_AP_PERIPH = 1,
+            PERIPH_FW = 1,
+            CAN_APP_NODE_NAME = '"org.ardupilot.ap_periph_battmon"',
+            APJ_BOARD_ID = 101,
+
+            HAL_PERIPH_ENABLE_BATTERY = 1,
+        )
+
 class esp32(Board):
     abstract = True
     toolchain = 'xtensa-esp32-elf'
@@ -1011,6 +1024,8 @@ class esp32(Board):
         env.CXXFLAGS.remove('-Werror=undef')
         env.CXXFLAGS.remove('-Werror=shadow')
 
+        # wrap malloc to ensure memory is zeroed
+        env.LINKFLAGS += ['-Wl,--wrap,malloc']
 
         env.INCLUDES += [
                 cfg.srcnode.find_dir('libraries/AP_HAL_ESP32/boards').abspath(),
@@ -1264,6 +1279,16 @@ class chibios(Board):
             cfg.msg("Checking for intelhex module:", 'disabled', color='YELLOW')
             env.HAVE_INTEL_HEX = False
 
+        if cfg.options.enable_new_checking:
+            env.CHECK_SYMBOLS = True
+        else:
+            # disable new checking on ChibiOS by default to save flash
+            # we enable it in a CI test to catch incorrect usage
+            env.CXXFLAGS += [
+                "-DNEW_NOTHROW=new",
+                "-fcheck-new", # rely on -fcheck-new ensuring nullptr checks
+                ]
+
     def build(self, bld):
         super(chibios, self).build(bld)
         bld.ap_version_append_str('CHIBIOS_GIT_VERSION', bld.git_submodule_head_hash('ChibiOS', short=True))
@@ -1320,6 +1345,9 @@ class linux(Board):
             'AP_HAL_Linux',
         ]
 
+        # wrap malloc to ensure memory is zeroed
+        env.LINKFLAGS += ['-Wl,--wrap,malloc']
+
         if cfg.options.force_32bit:
             env.DEFINES.update(
                 HAL_FORCE_32BIT = 1,
@@ -1357,13 +1385,6 @@ class linux(Board):
             env.DEFINES.update(
                 HAL_PARAM_DEFAULTS_PATH='"@ROMFS/defaults.parm"',
             )
-        if len(env.ROMFS_FILES) > 0:
-            # Allow lua to load from ROMFS if any lua files are added
-            for file in env.ROMFS_FILES:
-                if file[0].startswith("scripts") and file[0].endswith(".lua"):
-                    env.CXXFLAGS += ['-DHAL_HAVE_AP_ROMFS_EMBEDDED_LUA']
-                    break
-            env.CXXFLAGS += ['-DHAL_HAVE_AP_ROMFS_EMBEDDED_H']
 
     def build(self, bld):
         super(linux, self).build(bld)

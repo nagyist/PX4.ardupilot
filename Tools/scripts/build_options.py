@@ -276,6 +276,7 @@ BUILD_OPTIONS = [
     Feature('Baro', 'BMP085', 'AP_BARO_BMP085_ENABLED', 'Enable BMP085 Barometric Sensor', 1, None),
     Feature('Baro', 'BMP280', 'AP_BARO_BMP280_ENABLED', 'Enable BMP280 Barometric Sensor', 1, None),
     Feature('Baro', 'BMP388', 'AP_BARO_BMP388_ENABLED', 'Enable BMP388 Barometric Sensor', 1, None),
+    Feature('Baro', 'BMP581', 'AP_BARO_BMP581_ENABLED', 'Enable BMP581 Barometric Sensor', 1, None),
     Feature('Baro', 'DPS280', 'AP_BARO_DPS280_ENABLED', 'Enable DPS280/DPS310 Barometric Sensor', 1, None),
     Feature('Baro', 'DUMMY', 'AP_BARO_DUMMY_ENABLED', 'Enable DUMMY Barometric Sensor', 0, None),
     Feature('Baro', 'EXTERNALAHRS', 'AP_BARO_EXTERNALAHRS_ENABLED', 'Enable EXTERNALAHRS Barometric Sensor', 0, 'AHRS_EXT'),
@@ -314,7 +315,8 @@ BUILD_OPTIONS = [
     Feature('Other', 'NMEA_OUTPUT', 'HAL_NMEA_OUTPUT_ENABLED', 'Enable NMEA Output', 0, None),
     Feature('Other', 'SDCARD_FORMATTING', 'AP_FILESYSTEM_FORMAT_ENABLED', 'Enable formatting of microSD cards', 0, None),
     Feature('Other', 'BOOTLOADER_FLASHING', 'AP_BOOTLOADER_FLASHING_ENABLED', 'Enable Bootloader flashing', 0, "FILESYSTEM_ROMFS"),  # noqa
-    Feature('Other', 'SCRIPTING', 'AP_SCRIPTING_ENABLED', 'Enable LUA Scripting', 0, None),
+    Feature('Other', 'SCRIPTING', 'AP_SCRIPTING_ENABLED', 'Enable Lua scripting', 0, None),
+    Feature('Other', 'SCRIPTING_SERIALDEVICE', 'AP_SCRIPTING_SERIALDEVICE_ENABLED', 'Enable Lua serial device simulation', 0, "SCRIPTING"), # noqa
     Feature('Other', 'SLCAN', 'AP_CAN_SLCAN_ENABLED', 'Enable SLCAN serial protocol', 0, None),
     Feature('Other', 'SDCARD_MISSION', 'AP_SDCARD_STORAGE_ENABLED', 'Enable storing mission on microSD cards', 0, None),
     Feature('Other', 'COMPASS_CAL', 'COMPASS_CAL_ENABLED', 'Enable "tumble" compass calibration', 0, None),
@@ -331,6 +333,7 @@ BUILD_OPTIONS = [
     Feature('MAVLink', 'MAVLINK_VERSION_REQUEST', 'AP_MAVLINK_AUTOPILOT_VERSION_REQUEST_ENABLED', 'Enable old AUTOPILOT_VERSION_REQUEST mesage', 0, None),  # noqa
     Feature('MAVLink', 'REQUEST_AUTOPILOT_CAPA', 'AP_MAVLINK_MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES_ENABLED', 'Enable old REQUEST_AUTOPILOT_CAPABILITIES command', 0, None),  # noqa
     Feature('MAVLink', 'MAV_MSG_RELAY_STATUS', 'AP_MAVLINK_MSG_RELAY_STATUS_ENABLED', 'Enable sending of RELAY_STATUS message', 0, 'RELAY'),  # noqa
+    Feature('MAVLink', 'MAV_MSG_HIL_GPS', 'AP_MAVLINK_MSG_HIL_GPS_ENABLED', 'Enable receiving of HIL_GPS messages', 0, None),  # noqa
     Feature('MAVLink', 'MAV_MSG_MOUNT_CONTROL', 'AP_MAVLINK_MSG_MOUNT_CONTROL_ENABLED', 'Enable handling of deprecated MOUNT_CONTROL message', 0, None),  # noqa
     Feature('MAVLink', 'MAV_MSG_MOUNT_CONFIGURE', 'AP_MAVLINK_MSG_MOUNT_CONFIGURE_ENABLED', 'Enable handling of deprecated MOUNT_CONFIGURE message', 0, None),  # noqa
     Feature('MAVLink', 'AP_MAVLINK_BATTERY2_ENABLED', 'AP_MAVLINK_BATTERY2_ENABLED', 'Enable sending of old BATTERY2 message', 0, None),  # noqa

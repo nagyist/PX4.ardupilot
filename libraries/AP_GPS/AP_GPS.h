@@ -197,7 +197,7 @@ public:
         uint16_t time_week;                 ///< GPS week number
         Location location;                  ///< last fix location
         float ground_speed;                 ///< ground speed in m/s
-        float ground_course;                ///< ground course in degrees
+        float ground_course;                ///< ground course in degrees, wrapped 0-360
         float gps_yaw;                      ///< GPS derived yaw information, if available (degrees)
         uint32_t gps_yaw_time_ms;           ///< timestamp of last GPS yaw reading
         bool  gps_yaw_configured;           ///< GPS is configured to provide yaw
@@ -551,9 +551,10 @@ public:
     // returns true if all GPS instances have passed all final arming checks/state changes
     bool prepare_for_arming(void);
 
-    // returns true if all GPS backend drivers haven't seen any failure
-    // this is for backends to be able to spout pre arm error messages
-    bool backends_healthy(char failure_msg[], uint16_t failure_msg_len);
+    // returns true if all GPS backend drivers are OK with the concept
+    // of the vehicle arming.  this is for backends to be able to
+    // spout pre arm error messages
+    bool pre_arm_checks(char failure_msg[], uint16_t failure_msg_len);
 
     // returns false if any GPS drivers are not performing their logging appropriately
     bool logging_failed(void) const;

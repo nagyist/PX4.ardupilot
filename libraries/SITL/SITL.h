@@ -349,6 +349,7 @@ public:
     AP_Float wind_direction;
     AP_Float wind_turbulance;
     AP_Float wind_dir_z;
+    AP_Float wind_change_tc;
     AP_Int8  wind_type; // enum WindLimitType
     AP_Float wind_type_alt;
     AP_Float wind_type_coef;
@@ -552,6 +553,9 @@ public:
 
     // Master instance to use servos from with slave instances
     AP_Int8 ride_along_master;
+
+    // clamp simulation - servo channel starting at offset 1 (usually ailerons)
+    AP_Int8 clamp_ch;
 
 #if AP_SIM_INS_FILE_ENABLED
     enum INSFileMode {

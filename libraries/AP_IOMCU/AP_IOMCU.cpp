@@ -453,7 +453,11 @@ void AP_IOMCU::read_telem()
         TelemetryData t {
             .temperature_cdeg = int16_t(telem->temperature_cdeg[i]),
             .voltage = float(telem->voltage_cvolts[i]) * 0.01,
-            .current = float(telem->current_camps[i]) * 0.01
+            .current = float(telem->current_camps[i]) * 0.01,
+#if AP_EXTENDED_DSHOT_TELEM_V2_ENABLED
+            .edt2_status = telem->edt2_status[i],
+            .edt2_stress = telem->edt2_stress[i],
+#endif
         };
         update_telem_data(esc_group * 4 + i, t, telem->types[i]);
     }
@@ -642,8 +646,8 @@ bool AP_IOMCU::read_registers(uint8_t page, uint8_t offset, uint8_t count, uint1
 
     // wait for the expected number of reply bytes or timeout
     if (!uart.wait_timeout(count*2+4, 10)) {
-        debug("t=%lu timeout read page=%u offset=%u count=%u\n",
-              AP_HAL::millis(), page, offset, count);
+        debug("t=%lu timeout read page=%u offset=%u count=%u avail=%u\n",
+              AP_HAL::millis(), page, offset, count, uart.available());
         protocol_fail_count++;
         return false;
     }

@@ -99,7 +99,7 @@ bool NavEKF2_core::setup_core(uint8_t _imu_index, uint8_t _core_index)
         }
 
         // try to instantiate
-        yawEstimator = new EKFGSF_yaw();
+        yawEstimator = NEW_NOTHROW EKFGSF_yaw();
         if (yawEstimator == nullptr) {
             GCS_SEND_TEXT(MAV_SEVERITY_CRITICAL, "EKF2 IMU%uGSF: allocation failed",(unsigned)imu_index);
             return false;
@@ -243,9 +243,11 @@ void NavEKF2_core::InitialiseVariables()
     delAngBiasLearned = false;
     memset(&filterStatus, 0, sizeof(filterStatus));
     activeHgtSource = 0;
+#if AP_RANGEFINDER_ENABLED
     memset(&rngMeasIndex, 0, sizeof(rngMeasIndex));
     memset(&storedRngMeasTime_ms, 0, sizeof(storedRngMeasTime_ms));
     memset(&storedRngMeas, 0, sizeof(storedRngMeas));
+#endif
     terrainHgtStable = true;
     ekfOriginHgtVar = 0.0f;
     ekfGpsRefHgt = 0.0;

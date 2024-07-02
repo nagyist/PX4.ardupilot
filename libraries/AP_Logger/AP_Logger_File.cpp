@@ -173,7 +173,7 @@ void AP_Logger_File::periodic_1Hz()
          _front._params.disarm_ratemax > 0 ||
          _front._log_pause)) {
         // setup rate limiting if log rate max > 0Hz or log pause of streaming entries is requested
-        rate_limiter = new AP_Logger_RateLimiter(_front, _front._params.file_ratemax, _front._params.disarm_ratemax);
+        rate_limiter = NEW_NOTHROW AP_Logger_RateLimiter(_front, _front._params.file_ratemax, _front._params.disarm_ratemax);
     }
 }
 
@@ -473,11 +473,6 @@ bool AP_Logger_File::StartNewLogOK() const
 bool AP_Logger_File::_WritePrioritisedBlock(const void *pBuffer, uint16_t size, bool is_critical)
 {
     WITH_SEMAPHORE(semaphore);
-
-    if (! WriteBlockCheckStartupMessages()) {
-        _dropped++;
-        return false;
-    }
 
 #if APM_BUILD_TYPE(APM_BUILD_Replay)
     if (AP::FS().write(_write_fd, pBuffer, size) != size) {

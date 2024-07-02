@@ -112,6 +112,9 @@ uint16_t AP_Param::param_overrides_len;
 uint16_t AP_Param::num_param_overrides;
 uint16_t AP_Param::num_read_only;
 
+// goes true if we run out of param space
+bool AP_Param::eeprom_full;
+
 ObjectBuffer_TS<AP_Param::param_save> AP_Param::save_queue{30};
 bool AP_Param::registered_save_handler;
 
@@ -1192,6 +1195,8 @@ void AP_Param::save_sync(bool force_save, bool send_to_gcs)
         return;
     }
     if (ofs == (uint16_t) ~0) {
+        eeprom_full = true;
+        DEV_PRINTF("EEPROM full\n");
         return;
     }
 
@@ -1224,6 +1229,7 @@ void AP_Param::save_sync(bool force_save, bool send_to_gcs)
 
     if (ofs+type_size((enum ap_var_type)phdr.type)+2*sizeof(phdr) >= _storage.size()) {
         // we are out of room for saving variables
+        eeprom_full = true;
         DEV_PRINTF("EEPROM full\n");
         return;
     }
@@ -1353,8 +1359,7 @@ bool AP_Param::load(void)
         return false;
     }
 
-    AP_Param *ap;
-    ap = this;
+    AP_Param *ap = this;
     if (idx != 0) {
         ap = (AP_Param *)((ptrdiff_t)ap) - (idx*sizeof(float));
     }
@@ -1967,8 +1972,7 @@ void AP_Param::convert_old_parameter(const struct ConversionInfo *info, float sc
 
     // find the new variable in the variable structures
     enum ap_var_type ptype;
-    AP_Param *ap2;
-    ap2 = find(&info->new_name[0], &ptype);
+    AP_Param *ap2 = find(&info->new_name[0], &ptype);
     if (ap2 == nullptr) {
         DEV_PRINTF("Unknown conversion '%s'\n", info->new_name);
         return;
@@ -2393,7 +2397,7 @@ bool AP_Param::load_defaults_file(const char *filename, bool last_pass)
     num_param_overrides = 0;
     num_read_only = 0;
 
-    param_overrides = new param_override[num_defaults];
+    param_overrides = NEW_NOTHROW param_override[num_defaults];
     if (param_overrides == nullptr) {
         AP_HAL::panic("AP_Param: Failed to allocate overrides");
         return false;
@@ -2488,7 +2492,7 @@ void AP_Param::load_param_defaults(const volatile char *ptr, int32_t length, boo
         return;
     }
 
-    param_overrides = new param_override[num_defaults];
+    param_overrides = NEW_NOTHROW param_override[num_defaults];
     if (param_overrides == nullptr) {
         AP_HAL::panic("AP_Param: Failed to allocate overrides");
         return;
@@ -2884,7 +2888,7 @@ void AP_Param::add_default(AP_Param *ap, float v)
     }
 
     // add to list
-    defaults_list *new_item = new defaults_list;
+    defaults_list *new_item = NEW_NOTHROW defaults_list;
     if (new_item == nullptr) {
         return;
     }

@@ -175,6 +175,19 @@
 #define HAL_WITH_IO_MCU_DSHOT HAL_WITH_IO_MCU_BIDIR_DSHOT
 #endif
 
+#ifndef HAL_REQUIRES_BDSHOT_SUPPORT
+#define HAL_REQUIRES_BDSHOT_SUPPORT (defined(HAL_WITH_BIDIR_DSHOT) || HAL_WITH_IO_MCU_BIDIR_DSHOT)
+#endif
+
+// support for Extended DShot Telemetry v2 is enabled only if any kind of such telemetry
+// can in principle arrive, either from servo outputs or from IOMCU
+
+// if not desired, set to 0 - and if IOMCU has bidirectional DShot enabled, recompile it too,
+// otherwise the communication to IOMCU breaks!
+#ifndef AP_EXTENDED_DSHOT_TELEM_V2_ENABLED
+#define AP_EXTENDED_DSHOT_TELEM_V2_ENABLED HAL_REQUIRES_BDSHOT_SUPPORT
+#endif
+
 // this is used as a general mechanism to make a 'small' build by
 // dropping little used features. We use this to allow us to keep
 // FMUv2 going for as long as possible
@@ -366,6 +379,10 @@
 
 #ifdef HAL_GPIO_LED_OFF
 #error "HAL_GPIO_LED_OFF must not be defined, it is implicitly !HAL_GPIO_LED_ON"
+#endif
+
+#ifndef HAL_WITH_POSTYPE_DOUBLE
+#define HAL_WITH_POSTYPE_DOUBLE BOARD_FLASH_SIZE > 1024
 #endif
 
 #define HAL_GPIO_LED_OFF (!HAL_GPIO_LED_ON)

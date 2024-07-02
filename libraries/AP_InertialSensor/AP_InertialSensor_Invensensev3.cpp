@@ -207,7 +207,7 @@ AP_InertialSensor_Backend *AP_InertialSensor_Invensensev3::probe(AP_InertialSens
     }
 
     AP_InertialSensor_Invensensev3 *sensor =
-        new AP_InertialSensor_Invensensev3(imu, std::move(_dev), _rotation);
+        NEW_NOTHROW AP_InertialSensor_Invensensev3(imu, std::move(_dev), _rotation);
     if (!sensor || !sensor->hardware_init()) {
         delete sensor;
         return nullptr;
@@ -294,13 +294,13 @@ void AP_InertialSensor_Invensensev3::start()
         switch (inv3_type) {
             case Invensensev3_Type::ICM42688: // HiRes 19bit
             case Invensensev3_Type::IIM42652: // HiRes 19bit
-            case Invensensev3_Type::ICM42670: // HiRes 19bit
             case Invensensev3_Type::ICM45686: // HiRes 20bit
                 highres_sampling = dev->bus_type() == AP_HAL::Device::BUS_TYPE_SPI;
                 break;
             case Invensensev3_Type::ICM40609: // No HiRes
             case Invensensev3_Type::ICM42605:
             case Invensensev3_Type::ICM40605:
+            case Invensensev3_Type::ICM42670: // HiRes 19bit (not working)
                 break;
         }
     }
