@@ -349,19 +349,19 @@ void AP_Periph_FW::handle_param_executeopcode(CanardInstance* canard_instance, C
 #if AP_PERIPH_GPS_ENABLED
         AP_Param::setup_object_defaults(&gps, gps.var_info);
 #endif
-#ifdef HAL_PERIPH_ENABLE_BATTERY
+#if AP_PERIPH_BATTERY_ENABLED
         AP_Param::setup_object_defaults(&battery, battery_lib.var_info);
 #endif
-#ifdef HAL_PERIPH_ENABLE_MAG
+#if AP_PERIPH_MAG_ENABLED
         AP_Param::setup_object_defaults(&compass, compass.var_info);
 #endif
-#ifdef HAL_PERIPH_ENABLE_BARO
+#if AP_PERIPH_BARO_ENABLED
         AP_Param::setup_object_defaults(&baro, baro.var_info);
 #endif
-#ifdef HAL_PERIPH_ENABLE_AIRSPEED
+#if AP_PERIPH_AIRSPEED_ENABLED
         AP_Param::setup_object_defaults(&airspeed, airspeed.var_info);
 #endif
-#ifdef HAL_PERIPH_ENABLE_RANGEFINDER
+#if AP_PERIPH_RANGEFINDER_ENABLED
         AP_Param::setup_object_defaults(&rangefinder, rangefinder.var_info);
 #endif
     }
@@ -1611,20 +1611,50 @@ void AP_Periph_FW::can_start()
         }
     }
     if (!has_uavcan_at_1MHz) {
-        g.can_protocol[0].set_and_save(uint8_t(AP_CAN::Protocol::DroneCAN));
+        g.can_protocol[0].set_and_save(AP_CAN::Protocol::DroneCAN);
         g.can_baudrate[0].set_and_save(1000000);
     }
 #endif // HAL_PERIPH_ENFORCE_AT_LEAST_ONE_PORT_IS_UAVCAN_1MHz
 
+    {
+        /*
+          support termination parameters, and also a hardware switch
+          to force termination and an LED to indicate if termination
+          is active
+         */
 #ifdef HAL_GPIO_PIN_GPIO_CAN1_TERM
-    palWriteLine(HAL_GPIO_PIN_GPIO_CAN1_TERM, g.can_terminate[0]);
+        bool can1_term = g.can_terminate[0];
+# ifdef HAL_GPIO_PIN_GPIO_CAN1_TERM_SWITCH
+        can1_term |= palReadLine(HAL_GPIO_PIN_GPIO_CAN1_TERM_SWITCH);
+# endif
+        palWriteLine(HAL_GPIO_PIN_GPIO_CAN1_TERM, can1_term);
+# ifdef HAL_GPIO_PIN_GPIO_CAN1_TERM_LED
+        palWriteLine(HAL_GPIO_PIN_GPIO_CAN1_TERM_LED, can1_term? HAL_LED_ON : !HAL_LED_ON);
+# endif
 #endif
+
 #ifdef HAL_GPIO_PIN_GPIO_CAN2_TERM
-    palWriteLine(HAL_GPIO_PIN_GPIO_CAN2_TERM, g.can_terminate[1]);
+        bool can2_term = g.can_terminate[1];
+# ifdef HAL_GPIO_PIN_GPIO_CAN2_TERM_SWITCH
+        can2_term |= palReadLine(HAL_GPIO_PIN_GPIO_CAN2_TERM_SWITCH);
+# endif
+        palWriteLine(HAL_GPIO_PIN_GPIO_CAN2_TERM, can2_term);
+# ifdef HAL_GPIO_PIN_GPIO_CAN2_TERM_LED
+        palWriteLine(HAL_GPIO_PIN_GPIO_CAN2_TERM_LED, can2_term? HAL_LED_ON : !HAL_LED_ON);
+# endif
 #endif
+
 #ifdef HAL_GPIO_PIN_GPIO_CAN3_TERM
-    palWriteLine(HAL_GPIO_PIN_GPIO_CAN3_TERM, g.can_terminate[2]);
+        bool can3_term = g.can_terminate[2];
+# ifdef HAL_GPIO_PIN_GPIO_CAN3_TERM_SWITCH
+        can3_term |= palReadLine(HAL_GPIO_PIN_GPIO_CAN3_TERM_SWITCH);
+# endif
+        palWriteLine(HAL_GPIO_PIN_GPIO_CAN3_TERM, can3_term);
+# ifdef HAL_GPIO_PIN_GPIO_CAN3_TERM_LED
+        palWriteLine(HAL_GPIO_PIN_GPIO_CAN3_TERM_LED, can3_term? HAL_LED_ON : !HAL_LED_ON);
+# endif
 #endif
+    }
 
     for (uint8_t i=0; i<HAL_NUM_CAN_IFACES; i++) {
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
@@ -1882,7 +1912,7 @@ void AP_Periph_FW::can_update()
     if (!hal.run_in_maintenance_mode())
 #endif
     {
-#ifdef HAL_PERIPH_ENABLE_MAG
+#if AP_PERIPH_MAG_ENABLED
         can_mag_update();
 #endif
 #if AP_PERIPH_GPS_ENABLED
@@ -1891,16 +1921,16 @@ void AP_Periph_FW::can_update()
 #if AP_UART_MONITOR_ENABLED
         send_serial_monitor_data();
 #endif
-#ifdef HAL_PERIPH_ENABLE_BATTERY
+#if AP_PERIPH_BATTERY_ENABLED
         can_battery_update();
 #endif
-#ifdef HAL_PERIPH_ENABLE_BARO
+#if AP_PERIPH_BARO_ENABLED
         can_baro_update();
 #endif
-#ifdef HAL_PERIPH_ENABLE_AIRSPEED
+#if AP_PERIPH_AIRSPEED_ENABLED
         can_airspeed_update();
 #endif
-#ifdef HAL_PERIPH_ENABLE_RANGEFINDER
+#if AP_PERIPH_RANGEFINDER_ENABLED
         can_rangefinder_update();
 #endif
 #ifdef HAL_PERIPH_ENABLE_PROXIMITY
@@ -1936,7 +1966,7 @@ void AP_Periph_FW::can_update()
 #ifdef HAL_PERIPH_ENABLE_DEVICE_TEMPERATURE
         temperature_sensor_update();
 #endif
-#ifdef HAL_PERIPH_ENABLE_RPM_STREAM
+#if AP_PERIPH_RPM_STREAM_ENABLED
         rpm_sensor_send();
 #endif
     }

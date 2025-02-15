@@ -287,9 +287,7 @@ class Board:
                 '-Wno-gnu-variable-sized-type-not-at-end',
                 '-Werror=implicit-fallthrough',
                 '-cl-single-precision-constant',
-            ]
-            env.CXXFLAGS += [
-                '-cl-single-precision-constant',
+                '-Wno-vla-extension',
             ]
         else:
             env.CFLAGS += [
@@ -422,8 +420,10 @@ class Board:
 
                 '-Wno-gnu-designator',
                 '-Wno-mismatched-tags',
+                '-Wno-vla-extension',
                 '-Wno-gnu-variable-sized-type-not-at-end',
                 '-Werror=implicit-fallthrough',
+                '-cl-single-precision-constant',
             ]
         else:
             env.CXXFLAGS += [
@@ -953,15 +953,17 @@ class sitl_periph_universal(sitl_periph):
             APJ_BOARD_ID = 100,
 
             AP_PERIPH_GPS_ENABLED = 1,
-            HAL_PERIPH_ENABLE_AIRSPEED = 1,
-            HAL_PERIPH_ENABLE_MAG = 1,
-            HAL_PERIPH_ENABLE_BARO = 1,
-            HAL_PERIPH_ENABLE_IMU = 1,
-            HAL_PERIPH_ENABLE_RANGEFINDER = 1,
-            HAL_PERIPH_ENABLE_BATTERY = 1,
+            AP_PERIPH_AIRSPEED_ENABLED = 1,
+            AP_PERIPH_MAG_ENABLED = 1,
+            AP_PERIPH_BARO_ENABLED = 1,
+            AP_PERIPH_IMU_ENABLED = 1,
+            AP_PERIPH_RANGEFINDER_ENABLED = 1,
+            AP_PERIPH_BATTERY_ENABLED = 1,
+            AP_PERIPH_BATTERY_BALANCE_ENABLED = 0,
             HAL_PERIPH_ENABLE_EFI = 1,
-            HAL_PERIPH_ENABLE_RPM = 1,
-            HAL_PERIPH_ENABLE_RPM_STREAM = 1,
+            AP_PERIPH_RPM_ENABLED = 1,
+            AP_PERIPH_RPM_STREAM_ENABLED = 1,
+            AP_RPM_STREAM_ENABLED = 1,
             HAL_PERIPH_ENABLE_RC_OUT = 1,
             HAL_PERIPH_ENABLE_ADSB = 1,
             HAL_PERIPH_ENABLE_SERIAL_OPTIONS = 1,
@@ -972,6 +974,8 @@ class sitl_periph_universal(sitl_periph):
             AP_EXTENDED_ESC_TELEM_ENABLED = 1,
             AP_TERRAIN_AVAILABLE = 1,
             HAL_GYROFFT_ENABLED = 0,
+            AP_PERIPH_RTC_ENABLED = 0,
+            AP_PERIPH_RCIN_ENABLED = 0,
         )
 
 class sitl_periph_gps(sitl_periph):
@@ -984,7 +988,18 @@ class sitl_periph_gps(sitl_periph):
             CAN_APP_NODE_NAME = '"org.ardupilot.ap_periph_gps"',
             APJ_BOARD_ID = 101,
 
+            AP_PERIPH_BATTERY_ENABLED = 0,
             AP_PERIPH_GPS_ENABLED = 1,
+            AP_PERIPH_IMU_ENABLED = 0,
+            AP_PERIPH_MAG_ENABLED = 0,
+            AP_PERIPH_BATTERY_BALANCE_ENABLED = 0,
+            AP_PERIPH_BARO_ENABLED = 0,
+            AP_PERIPH_RANGEFINDER_ENABLED = 0,
+            AP_PERIPH_RTC_ENABLED = 0,
+            AP_PERIPH_RCIN_ENABLED = 0,
+            AP_PERIPH_RPM_ENABLED = 0,
+            AP_PERIPH_RPM_STREAM_ENABLED = 0,
+            AP_PERIPH_AIRSPEED_ENABLED = 0,
         )
 
 class sitl_periph_battmon(sitl_periph):
@@ -997,7 +1012,18 @@ class sitl_periph_battmon(sitl_periph):
             CAN_APP_NODE_NAME = '"org.ardupilot.ap_periph_battmon"',
             APJ_BOARD_ID = 101,
 
-            HAL_PERIPH_ENABLE_BATTERY = 1,
+            AP_PERIPH_BATTERY_ENABLED = 1,
+            AP_PERIPH_BATTERY_BALANCE_ENABLED = 0,
+            AP_PERIPH_BARO_ENABLED = 0,
+            AP_PERIPH_RANGEFINDER_ENABLED = 0,
+            AP_PERIPH_GPS_ENABLED = 0,
+            AP_PERIPH_IMU_ENABLED = 0,
+            AP_PERIPH_MAG_ENABLED = 0,
+            AP_PERIPH_RTC_ENABLED = 0,
+            AP_PERIPH_RCIN_ENABLED = 0,
+            AP_PERIPH_RPM_ENABLED = 0,
+            AP_PERIPH_RPM_STREAM_ENABLED = 0,
+            AP_PERIPH_AIRSPEED_ENABLED = 0,
         )
 
 class esp32(Board):
@@ -1163,6 +1189,7 @@ class chibios(Board):
             '-fno-builtin-vprintf',
             '-fno-builtin-vfprintf',
             '-fno-builtin-puts',
+            '-fno-math-errno',
             '-mno-thumb-interwork',
             '-mthumb',
             '--specs=nano.specs',

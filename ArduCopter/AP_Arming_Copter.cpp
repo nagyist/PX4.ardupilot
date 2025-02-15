@@ -460,7 +460,7 @@ bool AP_Arming_Copter::mandatory_gps_checks(bool display_failure)
     fence_requires_gps = (copter.fence.get_enabled_fences() & (AC_FENCE_TYPE_CIRCLE | AC_FENCE_TYPE_POLYGON)) > 0;
 #endif
 
-    if (mode_requires_gps || copter.option_is_enabled(Copter::FlightOption::REQUIRE_POSITION_FOR_ARMING)) {
+    if (mode_requires_gps || require_location == RequireLocation::YES) {
         if (!copter.position_ok()) {
             // vehicle level position estimate checks
             check_failed(display_failure, "Need Position Estimate");
@@ -807,7 +807,7 @@ bool AP_Arming_Copter::disarm(const AP_Arming::Method method, bool do_disarm_che
 
     // save compass offsets learned by the EKF if enabled
     Compass &compass = AP::compass();
-    if (ahrs.use_compass() && compass.get_learn_type() == Compass::LEARN_EKF) {
+    if (ahrs.use_compass() && compass.get_learn_type() == Compass::LearnType::COPY_FROM_EKF) {
         for(uint8_t i=0; i<COMPASS_MAX_INSTANCES; i++) {
             Vector3f magOffsets;
             if (ahrs.getMagOffsets(i, magOffsets)) {
